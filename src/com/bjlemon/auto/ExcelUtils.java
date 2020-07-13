@@ -10,6 +10,18 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 public class ExcelUtils {
+	// 商品名称下标
+	private static final int PRODCUT_NAME = 1;
+	// 商品图片下标
+	private static final int PRODCUT_IMAGE = 2;
+	// 商品价格下标
+	private static final int PRODCUT_PRICE = 5;
+	// 商品优惠券金额下标
+	private static final int COUPAN_PRICE = 16;
+	// 商品优惠券短链接下标
+	private static final int COUPAN_PATH = 20;
+	// 商品优惠券淘口令下标
+	private static final int COUPAN_SEARCH_PASSWORD = 21;
 	//导入
 	public static void readExcel()throws Exception{
 	    //读取文件
