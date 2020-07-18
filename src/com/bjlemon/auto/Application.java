@@ -1,6 +1,10 @@
 package com.bjlemon.auto;
 
 import java.awt.AWTException;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.Image;
 import java.awt.MouseInfo;
 import java.awt.Point;
@@ -11,6 +15,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
@@ -21,246 +27,126 @@ import java.nio.Buffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.melloware.jintellitype.*;
 
 /**
- * QQ群发工具 具备窗体界面的功能 需要监听电脑的F11 F12这两个热键
+ * QQ/微信群发工具 具备窗体界面的功能 需要监听电脑的F11 F12这两个热键
  *
  */
 public class Application extends JFrame {
+	// 是切换群聊
+	private static final String YES = "是";
+	// 否切换群聊
+	private static final String NO = "否";
 
-	static Random random = new Random(12321);
-	private Robot robot;// 机器人类，java提供自动化测试的核心api
-	private JTextArea txtArea;// 群发消息的内容存放文本框
-	private static Map<String, Integer> props = new HashMap<>();
-	/*
-	*
-	*
-	*
-	* */
-	private boolean isPause = true;
-	// 将热键的值转化成自己定义的常量
-	private static final int GLOBAL_HOTKEY_F10 = 0;
-	private static final int GLOBAL_HOTKEY_F11 = 1;
+	
 
 	/**
 	 * 构造方法 Applicaiton类被实例化的时候要用来显示
 	 */
 	public Application() {
+		// 初始化图形界面
+		initPanel();
+		// 初始化自动群发机器人
+		new AutoRobot().init();
+	}
+
+	/**
+	 * 初始化图形化界面
+	 */
+	public void initPanel() {
 		// 设置窗体的标题
-		this.setTitle("涛涛QQ群发工具");
+		this.setTitle("木木机器人QQ/微信群发");
 		// 设置窗体的大小
-		this.setSize(300, 300);
+		this.setSize(300, 350);
+        this.setLayout(new GridLayout(3, 3, 10, 10));
 		// 创建面板
 		JPanel jpanel = new JPanel();
-		// 用Label展示提示信息
-		JLabel jLabel = new JLabel("F10开始群发 F11结束群发");
-		jpanel.add(jLabel);// 将提示信息加入到面板
-		txtArea = new JTextArea(10, 20);// 用来输入要群发的消息内容
-		jpanel.add(txtArea);// 输入框文本域加入到面板
-
-		props = loadPros();
-
-		this.add(jpanel);// 将面板加入到窗体
-		try {
-			robot = new Robot();// 初始化机器人类
-		} catch (AWTException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		// 第三方插件 注册热键 F10的常量值是是121 F11的常量值是122
-		JIntellitype.getInstance().registerHotKey(GLOBAL_HOTKEY_F10, 0, 121);
-		JIntellitype.getInstance().registerHotKey(GLOBAL_HOTKEY_F11, 0, 122);
-		// 监听热键 匿名内部类
-		JIntellitype.getInstance().addHotKeyListener(new HotkeyListener() {
-
-			@Override
-			public void onHotKey(int arg0) {// arg0 就是转换后的值
-
-				switch (arg0) {
-				case GLOBAL_HOTKEY_F10:
-
-					isPause = false;
-					// 群发的代码
-					// 会用到多线程
-					new Thread(new Runnable() {
-
-						@Override
-						public void run() {
-							// TODO Auto-generated method stub
-
-							send();
-						}
-					}).start();// 启动线程
-					break;
-				case GLOBAL_HOTKEY_F11:
-					// 停止群发
-					isPause = true;
-					break;
-				}
-
-			}
-		});
-
+		// TODO 布局较丑，后期可以完善
+		JLabel jLabel = new JLabel("           F10开始群发 F11结束群发             ");
+		// 群发延迟配置
+		JLabel sendDelayJL = new JLabel("群发延时/秒");
+		JTextField sendDelayJTF = new JTextField(5);
+		JLabel sendDelayTip = new JLabel("  ");
+		JLabel lineBreak = new JLabel("    ");
+        JButton sendDelayBTN = new JButton("确认");
+        // 绑定群发延迟按钮确认信息监听
+        sendDelayBTN.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	String sendDelayText = sendDelayJTF.getText();
+            	if(StringUtils.isNumeric(sendDelayText)) {
+            		// 清空配置信息
+            		CacheUtils.setCache("sendDelay", Integer.valueOf(sendDelayText));
+            		sendDelayTip.setText("正确");
+            		sendDelayTip.setForeground(Color.green);
+            	}else {
+            		sendDelayTip.setText("错误");
+            		sendDelayTip.setForeground(Color.red);
+            	}
+            }
+        });
+        // 是否切换群配置
+		JLabel isSwitchJL = new JLabel("切换群聊");
+        JComboBox isSwitchJCB=new JComboBox();
+        isSwitchJCB.addItem("--请选择--");    
+        isSwitchJCB.addItem("是");
+        isSwitchJCB.addItem("否");
+        JLabel isSwitchTip = new JLabel("");
+        JButton isSwitchBTN = new JButton("确认");
+        // 绑定是否切换群聊按钮监听
+        isSwitchBTN.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	String isSwitchText = isSwitchJCB.getSelectedItem().toString();
+            	if(YES.equals(isSwitchText)||NO.equals(isSwitchText)) {
+            		CacheUtils.setCache("isSwitch",YES.equals(isSwitchText)?1:0 );
+            		isSwitchTip.setText("正确");
+            		isSwitchTip.setForeground(Color.green);
+            	}else {
+            		isSwitchTip.setText("错误");
+            		isSwitchTip.setForeground(Color.red);
+            	}
+            }
+        });
+        
+        jpanel.add(jLabel);
+        jpanel.add(sendDelayJL);
+        jpanel.add(sendDelayJTF);
+        jpanel.add(sendDelayTip);
+        jpanel.add(sendDelayBTN);
+        jpanel.add(lineBreak);
+        jpanel.add(isSwitchJL);
+        jpanel.add(isSwitchJCB);
+        jpanel.add(isSwitchTip);
+        jpanel.add(isSwitchBTN);
+		// 将面板加入到窗体
+		this.add(jpanel);
 		// 设置默认屏幕居中
 		this.setLocationRelativeTo(null);
 		// 设置窗体关闭的时候 退出进程
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		this.setResizable(false);
 		// 设置可见
 		this.setVisible(true);
 	}
 
-	static Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-	/**
-	 * 群发消息
-	 */
-	public synchronized void send() {
-		/**
-		 * 1.复制txtArea里面的文本内容到系统的粘贴板 2.获取鼠标的当前位置 属于初始位置 3.鼠标单击一次选中要被发送消息的好友
-		 * 4.按下回车 打开聊天界面 ，聊天界面的焦点会自动在文本框 5.执行粘贴操作 ctrl+v 6.按下回车进行消息的发送
-		 * 7.按下esc键推出当前的聊天窗口 8.将鼠标移动到初始位置 单击 9.按下方向键的下 将选择的好友移动至下一位
-		 * 
-		 * 4-9循环操作
-		 * 
-		 */
 
-		// 要放到系统的剪贴板
-		StringSelection strSel = new StringSelection("你好");// 系统的剪贴板有格式的
-
-		// Toolkit.getDefaultToolkit().getSystemClipboard()
-		// .setContents(strSel, null);
-		// 用到Java MouseInfo 可以获取到鼠标在屏幕上的坐标
-		Point p = MouseInfo.getPointerInfo().getLocation();
-		// 鼠标单击 两个步骤 按下 和 放开
-		mouseClick(robot, InputEvent.BUTTON1_MASK);// 代表单击左键
-		while (!isPause) {
-			// 执行回车操作
-			// keyInput(robot,KeyEvent.VK_ENTER);
-			robot.delay(getfasongyanchi());// 延迟 ，主要考虑 qq打开聊天框的时间 等待聊天框准备好
-			// 执行Ctrl+V
-			robot.keyPress(KeyEvent.VK_CONTROL);
-			robot.keyPress(KeyEvent.VK_V);
-			robot.keyRelease(KeyEvent.VK_CONTROL);
-			robot.keyRelease(KeyEvent.VK_V);
-			robot.delay(1000);
-			StringSelection strSel1 = new StringSelection("你好34242342432");
-			cb.setContents(strSel1, null);
-			robot.keyPress(KeyEvent.VK_CONTROL);
-			robot.keyPress(KeyEvent.VK_V);
-			robot.keyRelease(KeyEvent.VK_CONTROL);
-			robot.keyRelease(KeyEvent.VK_V);
-			// 按下回车 发送消息
-			keyInput(robot, KeyEvent.VK_ENTER);
-			robot.delay(getctrlandtabyanchi());
-			// 切换群的次数 随机
-
-			/*
-			 * int change = random.nextInt(getsuijiqiehuan())+1;
-			 * System.out.println("切换群的次数："+change); for (int i = 1; i <change ;
-			 * i++) { ctrlAndTab(); }
-			 */
-
-			while (true) {
-				System.out.println("999");
-			}
-		}
-		// 按下ESC键推出聊天窗口
-		keyInput(robot, KeyEvent.VK_ESCAPE);
-		// 回到初始位置单击
-		robot.mouseMove(p.x, p.y);
-		mouseClick(robot, InputEvent.BUTTON1_MASK);
-		// 方向键往下按一下
-		keyInput(robot, KeyEvent.VK_DOWN);
-		robot.delay(getctrlandtabyanchi());
-	}
-
-	private void ctrlAndTab() {
-		robot.keyPress(KeyEvent.VK_CONTROL);
-		robot.delay(getctrlandtabyanchi());
-		robot.keyPress(KeyEvent.VK_TAB);
-		robot.delay(getctrlandtabyanchi());
-		robot.keyRelease(KeyEvent.VK_CONTROL);
-		robot.delay(getctrlandtabyanchi());
-		robot.keyRelease(KeyEvent.VK_TAB);
-		robot.delay(getctrlandtabyanchi());
-	}
-
-	/**
-	 * 鼠标的单击操作
-	 * 
-	 * @param robot
-	 *            用来实际模拟鼠标操作的类
-	 * @param mouseButton
-	 *            代表的是鼠标的哪个键
-	 */
-	public static void mouseClick(Robot robot, int mouseButton) {
-		robot.mousePress(mouseButton);// 按下
-		robot.mouseRelease(mouseButton);// 释放
-	}
-
-	/**
-	 * 输入键盘操作
-	 * 
-	 * @param robot
-	 * @param keyCode
-	 */
-	public static void keyInput(Robot robot, int keyCode) {
-		robot.keyPress(keyCode);
-		robot.keyRelease(keyCode);
-	}
-
-	// ctrlandtabyanchi
-	public static Integer getfasongyanchi() {
-		return random.nextInt(props.get("fasongyanchi"));
-	}
-
-	public static Integer getctrlandtabyanchi() {
-		return random.nextInt(props.get("ctrlandtabyanchi"));
-	}
-
-	public static Integer getsuijiqiehuan() {
-		return props.get("suijiqiehuan");
-	}
-
-	public Map<String, Integer> loadPros() {
-		Map<String, Integer> map = new HashMap<>();
-		InputStream is1 = Application.class.getClassLoader()
-				.getResourceAsStream("com/bjlemon/auto/pros.txt");
-		BufferedReader br = new BufferedReader(new InputStreamReader(is1));
-		try {
-
-			String line = "";
-			String[] arrs = null;
-			while ((line = br.readLine()) != null) {
-				arrs = line.split(":");
-				map.put(arrs[0], Integer.parseInt(arrs[1]));
-				System.out.println(arrs[0] + " : " + arrs[1]);
-			}
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				br.close();
-				return map;
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-		}
-
-		return map;
-
-	}
 
 	/**
 	 * 开发应用程序 JFrame
@@ -269,71 +155,6 @@ public class Application extends JFrame {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		// TODO Auto-generated method stub
-		// getImageByUrl("https://img.alicdn.com/i1/2208018398547/O1CN01nKNOfo2D0ZmYf36jA_!!0-item_pic.jpg");
-		// setClipboardImage(image);
-		// Application1 application = new Application1();
-		getImageByUrl("https://img.alicdn.com/i1/2208018398547/O1CN01nKNOfo2D0ZmYf36jA_!!0-item_pic.jpg");
+		Application application = new Application();
 	}
-
-
-	/**
-	 * 复制图片到剪贴板
-	 * 
-	 * @param image
-	 */
-	public static void setClipboardImage(Image image) {
-		Transferable trans = new Transferable() {
-
-			@Override
-			public DataFlavor[] getTransferDataFlavors() {
-				// 转换成图片
-				return new DataFlavor[] { DataFlavor.imageFlavor };
-			}
-
-			@Override
-			public boolean isDataFlavorSupported(DataFlavor paramDataFlavor) {
-				// 是否能转换成图片
-				return DataFlavor.imageFlavor.equals(paramDataFlavor);
-			}
-
-			@Override
-			public Object getTransferData(DataFlavor paramDataFlavor)
-					throws UnsupportedFlavorException, IOException {
-				// 获取图片转换对象
-				if (isDataFlavorSupported(paramDataFlavor)) {
-					return image;
-				}
-				throw new UnsupportedFlavorException(paramDataFlavor);
-			}
-		};
-		// 复制到剪贴板
-		Toolkit.getDefaultToolkit().getSystemClipboard()
-				.setContents(trans, null);
-	}
-
-	/**
-	 *  通过url获取image对象
-	 * @param urlString
-	 * @param i
-	 * @return
-	 */
-	public static Image getImageByUrl(String urlString) {
-		Image image = null;
-		try {
-			// 构造URL
-			URL url = new URL(urlString);
-			// 打开连接
-			URLConnection con = url.openConnection();
-			// 输入流
-			InputStream is = con.getInputStream();
-
-		    image= ImageIO.read(is);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		return image;
-	}
-
 }
