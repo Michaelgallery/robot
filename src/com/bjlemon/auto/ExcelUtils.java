@@ -35,11 +35,11 @@ public class ExcelUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public static List<Product> readExcel() {
+	public static List<Product> readExcel(File file) {
 		List<Product> products = new ArrayList<>();
 		try {
 			// 读取文件
-			FileInputStream fis = new FileInputStream(new File(EXECEL_PATH));
+			FileInputStream fis = new FileInputStream(file);
 			// 得到工作薄
 			Workbook wb = new HSSFWorkbook(fis);
 			// 2.拿到第个sheet表
@@ -63,8 +63,6 @@ public class ExcelUtils {
 	}
 
 	public static void main(String[] args) throws Exception {
-		List<Product> products = readExcel();
-		System.out.append("===读取结束===");
 	}
 
 }

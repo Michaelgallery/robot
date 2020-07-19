@@ -23,8 +23,7 @@ public class AutoRobot {
 	// 机器人类，java提供自动化测试的核心api
 	private Robot robot;
 	// 剪贴板对象
-	private static Clipboard cb = Toolkit.getDefaultToolkit()
-			.getSystemClipboard();
+	private static Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
 	// 将热键的值转化成自己定义的常量
 	private static final int GLOBAL_HOTKEY_F10 = 0;
 	private static final int GLOBAL_HOTKEY_F11 = 1;
@@ -100,44 +99,36 @@ public class AutoRobot {
 	 */
 	public synchronized void send() {
 		// 读取excel文件数据
-		List<Product> products = ExcelUtils.readExcel();
+		List<Product> products = CacheUtils.getProductCache("products");
 		// 用到Java MouseInfo 可以获取到鼠标在屏幕上的坐标
 		Point p = MouseInfo.getPointerInfo().getLocation();
 		// 鼠标单击 两个步骤 按下 和 放开
 		KeyboardUtils.mouseClick(robot, InputEvent.BUTTON1_MASK);// 代表单击左键
 		// 计数器
 		int index = 0;
+		long startTime = System.currentTimeMillis();
 		while (!isPause) {
-			System.out.println("====进入循环体======");
-			for (Product product : products) {
-				// 是否切换群聊
-				if (SWITCH == isSwitch()) {
-					for (int i = 0; i < SWITCH_NUM; i++) {
+			if (products != null) {
+				for (Product product : products) {
+					// 是否切换群聊
+					if (SWITCH == isSwitch()) {
+						for (int i = 0; i < SWITCH_NUM; i++) {
+							sendProductMessage(product);
+							ctrlAndTab();
+							sleep();
+						}
+					} else {
+						// 发送信息
 						sendProductMessage(product);
-						ctrlAndTab();
-						try {
-							Thread.sleep(getMillisecond());
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						if (index > 0) {
+							sleep();
 						}
 					}
-				} else {
-					// 发送信息
-					sendProductMessage(product);
-					if (index > 0) {
-						try {
-							Thread.sleep(getMillisecond());
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+					index++;
 				}
-				index++;
+			} else {
+				sleep();
 			}
-			System.out.println("=======第" + index + "轮循环结束");
-
 		}
 		// 按下ESC键推出聊天窗口
 		KeyboardUtils.keyInput(robot, KeyEvent.VK_ESCAPE);
@@ -146,6 +137,19 @@ public class AutoRobot {
 		KeyboardUtils.mouseClick(robot, InputEvent.BUTTON1_MASK);
 		// 方向键往下按一下
 		KeyboardUtils.keyInput(robot, KeyEvent.VK_DOWN);
+	}
+	
+	
+	/**
+	 * 休眠线程
+	 */
+	private void sleep() {
+		try {
+			Thread.sleep(getMillisecond());
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -185,8 +189,7 @@ public class AutoRobot {
 		BigDecimal price = new BigDecimal(product.getPrice());
 		BigDecimal coupanPrice = new BigDecimal(product.getCoupanPrice());
 		double afterCoupanPrice = price.subtract(coupanPrice).doubleValue();
-		buffer.append("原价：" + product.getPrice() + "元   后价：" + afterCoupanPrice
-				+ "元  \n ");
+		buffer.append("原价：" + product.getPrice() + "元   后价：" + afterCoupanPrice + "元  \n ");
 		buffer.append(product.getCoupanSearchPassword() + "\n");
 		buffer.append(product.getCoupanPath() + "\n");
 		buffer.append("复制本消息打开【手机陶宝】查看");

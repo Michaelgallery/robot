@@ -47,7 +47,7 @@ public class KeyboardUtils {
 	public static Integer getsuijiqiehuan() {
 		return 100;
 	}
-	
+
 	/**
 	 * 复制图片到剪贴板
 	 * 
@@ -80,7 +80,7 @@ public class KeyboardUtils {
 		// 复制到剪贴板
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(trans, null);
 	}
-	
+
 	/**
 	 * 通过url获取image对象
 	 * 
